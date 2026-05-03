@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import pool from "@/lib/db"
+import { supabase } from "@/lib/supabase"
 
 /**
  * @swagger
@@ -30,24 +30,28 @@ import pool from "@/lib/db"
  */
 export async function GET(_req: NextRequest) {
   try {
-    const result = await pool.query("SELECT NOW()")
+    // Test connection by checking auth
+    const { data, error } = await supabase.auth.admin.listUsers()
+
+    if (error) throw error
 
     return NextResponse.json(
       {
         status: "ok",
         database: "connected",
-        timestamp: result.rows[0].now,
+        timestamp: new Date().toISOString(),
       },
       { status: 200 }
     )
   } catch (error) {
     console.error("Database connection error:", error)
+    const errorMessage = error instanceof Error ? error.message : JSON.stringify(error)
 
     return NextResponse.json(
       {
         status: "error",
         database: "disconnected",
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: errorMessage,
       },
       { status: 500 }
     )

@@ -8,3 +8,4 @@ export async function GET(_req: NextRequest) {
 export async function POST(_req: NextRequest) {
   return notImplemented()
 }
+
