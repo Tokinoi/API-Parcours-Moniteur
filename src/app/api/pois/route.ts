@@ -55,12 +55,30 @@ export async function GET(req: NextRequest) {
 
     if (error) throw error
 
-    return NextResponse.json((data || []) as POI[], { status: 200 })
+    return NextResponse.json((data || []) as POI[], {
+      status: 200,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
+      },
+    })
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Unknown error" },
-      { status: 500 }
+      { status: 500, headers: { "Access-Control-Allow-Origin": "*" } }
     )
   }
+}
+
+export function OPTIONS() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+    },
+  })
 }
 

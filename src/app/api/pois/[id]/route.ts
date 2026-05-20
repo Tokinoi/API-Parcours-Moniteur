@@ -59,6 +59,12 @@ interface POI {
  *       500:
  *         description: Server error
  */
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+}
+
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -70,7 +76,7 @@ export async function GET(
     if (!id || typeof id !== "string") {
       return NextResponse.json(
         { error: "Invalid POI ID" },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       )
     }
 
@@ -83,7 +89,7 @@ export async function GET(
     if (error || !data) {
       return NextResponse.json(
         { error: "POI not found" },
-        { status: 404 }
+        { status: 404, headers: corsHeaders }
       )
     }
 
@@ -93,12 +99,19 @@ export async function GET(
       {
         data: poi,
       },
-      { status: 200 }
+      { status: 200, headers: corsHeaders }
     )
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Unknown error" },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     )
   }
+}
+
+export function OPTIONS() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: corsHeaders,
+  })
 }
