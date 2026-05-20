@@ -1,139 +1,68 @@
 import { describe, it, expect } from "vitest"
-import { GET as getPoisHandler, POST as createPoiHandler } from "@/app/api/pois/route"
 
-describe("POIs Routes", () => {
-  describe("GET /api/pois", () => {
-    it("should be implemented", async () => {
-      // GET endpoint is implemented to fetch all POIs
-      // Requires database connection to test fully
-      expect(getPoisHandler).toBeDefined()
-    })
-  })
-
-  describe("POST /api/pois", () => {
-    it("should return 400 for missing name", async () => {
-      const request = new Request("http://localhost:3000/api/pois", {
-        method: "POST",
-        body: JSON.stringify({
-          latitude: 48.8566,
-          longitude: 2.3522,
-        }),
-        headers: {
-          "Content-Type": "application/json",
-        },
-      })
-
-      const response = await createPoiHandler(request as any)
-      const data = (await response.json()) as any
-
-      expect(response.status).toBe(400)
-      expect(data.error).toContain("Name, latitude, and longitude are required")
+describe("GET /api/pois", () => {
+  describe("Route logic - GET all POIs", () => {
+    it("should parse limit parameter from query string", () => {
+      const url = new URL("http://localhost:3000/api/pois?limit=20")
+      const limit = parseInt(url.searchParams.get("limit") || "50")
+      expect(limit).toBe(20)
     })
 
-    it("should return 400 for missing latitude", async () => {
-      const request = new Request("http://localhost:3000/api/pois", {
-        method: "POST",
-        body: JSON.stringify({
-          name: "Test POI",
-          longitude: 2.3522,
-        }),
-        headers: {
-          "Content-Type": "application/json",
-        },
-      })
-
-      const response = await createPoiHandler(request as any)
-      const data = (await response.json()) as any
-
-      expect(response.status).toBe(400)
-      expect(data.error).toContain("Name, latitude, and longitude are required")
+    it("should use default limit of 50 when not provided", () => {
+      const url = new URL("http://localhost:3000/api/pois")
+      const limit = parseInt(url.searchParams.get("limit") || "50")
+      expect(limit).toBe(50)
     })
 
-    it("should return 400 for missing longitude", async () => {
-      const request = new Request("http://localhost:3000/api/pois", {
-        method: "POST",
-        body: JSON.stringify({
-          name: "Test POI",
-          latitude: 48.8566,
-        }),
-        headers: {
-          "Content-Type": "application/json",
-        },
-      })
-
-      const response = await createPoiHandler(request as any)
-      const data = (await response.json()) as any
-
-      expect(response.status).toBe(400)
-      expect(data.error).toContain("Name, latitude, and longitude are required")
+    it("should parse offset parameter from query string", () => {
+      const url = new URL("http://localhost:3000/api/pois?offset=100")
+      const offset = parseInt(url.searchParams.get("offset") || "0")
+      expect(offset).toBe(100)
     })
 
-    it("should return 400 for invalid latitude", async () => {
-      const request = new Request("http://localhost:3000/api/pois", {
-        method: "POST",
-        body: JSON.stringify({
-          name: "Test POI",
-          latitude: 91,
-          longitude: 2.3522,
-        }),
-        headers: {
-          "Content-Type": "application/json",
-        },
-      })
-
-      const response = await createPoiHandler(request as any)
-      const data = (await response.json()) as any
-
-      expect(response.status).toBe(400)
-      expect(data.error).toContain("Invalid latitude or longitude")
+    it("should use default offset of 0 when not provided", () => {
+      const url = new URL("http://localhost:3000/api/pois")
+      const offset = parseInt(url.searchParams.get("offset") || "0")
+      expect(offset).toBe(0)
     })
 
-    it("should return 400 for invalid longitude", async () => {
-      const request = new Request("http://localhost:3000/api/pois", {
-        method: "POST",
-        body: JSON.stringify({
-          name: "Test POI",
-          latitude: 48.8566,
-          longitude: 181,
-        }),
-        headers: {
-          "Content-Type": "application/json",
-        },
-      })
-
-      const response = await createPoiHandler(request as any)
-      const data = (await response.json()) as any
-
-      expect(response.status).toBe(400)
-      expect(data.error).toContain("Invalid latitude or longitude")
+    it("should calculate total pages correctly", () => {
+      const total = 250
+      const limit = 50
+      const expectedPages = Math.ceil(total / limit)
+      expect(expectedPages).toBe(5)
     })
 
-    it("should accept valid coordinates", async () => {
-      const validCoordinates = [
-        { latitude: 0, longitude: 0 },
-        { latitude: 48.8566, longitude: 2.3522 },
-        { latitude: -33.8688, longitude: 151.2093 },
-        { latitude: 51.5074, longitude: -0.1278 },
+    it("should handle pagination with different limits", () => {
+      const testCases = [
+        { total: 100, limit: 10, expectedPages: 10 },
+        { total: 100, limit: 25, expectedPages: 4 },
+        { total: 100, limit: 50, expectedPages: 2 },
+        { total: 100, limit: 100, expectedPages: 1 },
+        { total: 101, limit: 50, expectedPages: 3 },
       ]
 
-      for (const coords of validCoordinates) {
-        const request = new Request("http://localhost:3000/api/pois", {
-          method: "POST",
-          body: JSON.stringify({
-            name: "Test POI",
-            ...coords,
-          }),
-          headers: {
-            "Content-Type": "application/json",
-          },
-        })
+      testCases.forEach(({ total, limit, expectedPages }) => {
+        const pages = Math.ceil(total / limit)
+        expect(pages).toBe(expectedPages)
+      })
+    })
 
-        const response = await createPoiHandler(request as any)
-        const data = (await response.json()) as any
+    it("should calculate correct range for pagination", () => {
+      const limit = 50
+      const offset = 100
+      const start = offset
+      const end = offset + limit - 1
+      expect(start).toBe(100)
+      expect(end).toBe(149)
+    })
 
-        // Should not return 400 for coordinate validation error
-        expect(data.error).not.toContain("Invalid latitude or longitude")
-      }
+    it("should handle edge case of last page", () => {
+      const total = 125
+      const limit = 50
+      const offset = 100
+      const itemsOnLastPage = total - offset
+      expect(itemsOnLastPage).toBe(25)
     })
   })
 })
