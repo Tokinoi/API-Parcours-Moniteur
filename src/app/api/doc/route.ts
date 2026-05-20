@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
-import { swaggerSpec } from "@/lib/swagger"
+import specData from "@/lib/swagger-spec-generated.json"
 
 export async function GET(_req: NextRequest) {
-  return NextResponse.json(swaggerSpec)
+  return NextResponse.json(specData)
 }
