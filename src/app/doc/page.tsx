@@ -2,8 +2,6 @@
 
 import { useEffect } from 'react'
 
-import { useEffect } from "react"
-
 export default function DocPage() {
   useEffect(() => {
     const script = document.createElement('script')
